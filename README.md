@@ -15,6 +15,7 @@ of the text can be defined by developer.
 
 ## Macro blocks examples
 
+```
 @vars{
 	title: 'Home',
 	content: 'index',
@@ -40,6 +41,7 @@ of the text can be defined by developer.
 @rm{
 	Comment/Descarded block
 }
+´´´
 
 ## Default macros (coming soon)
 
