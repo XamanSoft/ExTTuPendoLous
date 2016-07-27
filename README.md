@@ -41,7 +41,7 @@ of the text can be defined by developer.
 @rm{
 	Comment/Descarded block
 }
-´´´
+```
 
 ## Default macros (coming soon)
 
