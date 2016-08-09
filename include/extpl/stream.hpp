@@ -31,6 +31,9 @@ public:
 	const Error& error(const char* msg = nullptr);
 	const Error& error(const Error& e);
 	const Error& error() const;
+	
+	static bool addFindDir(const std::string& dirname);
+	static void rmFindDir(const std::string& dirname);
 };
 
 }

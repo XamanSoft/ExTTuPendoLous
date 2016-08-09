@@ -1,9 +1,15 @@
 #include <extpl/stream.hpp>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <algorithm>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 using ExTPL::IStream;
 using ExTPL::Error;
+
+std::vector<std::string> findPath;
 
 class IStream::LineNumberStreamBuf : public std::streambuf {
 	std::unique_ptr<std::streambuf> internalSB;
@@ -61,10 +67,25 @@ IStream::IStream(const std::string& sfn, const StreamType& stp)
 	)),
 	internalSB(static_cast<LineNumberStreamBuf*>(rdbuf())) {
 	
-	if (stp == ST_FILE) {
+	if (stp == ST_FILE) {		
 		if (static_cast<std::filebuf*>(internalSB->rdbuf())->open(sfn, std::ios_base::in) == nullptr) {
 			if (static_cast<std::filebuf*>(internalSB->rdbuf())->open(sfn + ".xtpl", std::ios_base::in) == nullptr) {
-				setstate(std::ios::badbit);
+				bool fail = true;
+				
+				for (auto& path : findPath) {
+					if (static_cast<std::filebuf*>(internalSB->rdbuf())->open(path+'/'+sfn, std::ios_base::in) == nullptr) {
+						if (static_cast<std::filebuf*>(internalSB->rdbuf())->open(path+'/'+sfn + ".xtpl", std::ios_base::in) != nullptr) {
+							fail = false;
+							break;
+						}
+					} else {
+						fail = false;
+						break;
+					}
+				}
+				
+				if (fail)
+					setstate(std::ios::badbit);
 			}
 		}
 	}
@@ -110,4 +131,20 @@ const Error& IStream::error(const Error& e) {
 
 const Error& IStream::error() const {
 	return err;
+}
+
+bool IStream::addFindDir(const std::string& dirname) {
+	struct stat info;
+
+	if(!dirname.empty() && stat(dirname.c_str(), &info ) == 0 && info.st_mode & S_IFDIR) {
+		findPath.push_back(dirname);
+		return true;
+	}
+	
+	return false;
+}
+
+void IStream::rmFindDir(const std::string& dirname) {
+	if (dirname.empty()) return;
+	findPath.erase(std::remove(findPath.begin(), findPath.end(), dirname), findPath.end());
 }
