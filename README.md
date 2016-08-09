@@ -1,4 +1,4 @@
-# ExTTuPendoLous (under construction)
+# ExTTuPendoLous (alpha version - under construction)
 Extended Tag Template - simple extended tag system for templating
 
 ## Description
@@ -13,39 +13,72 @@ a at symbol (@).
 Macro block start with a optional name and open/close symbol, blocks accept any kind of text. The format
 of the text can be defined by developer.
 
+## Default context
+
+This library works with a context class (include/extpl/context.hpp) that implements a class to access symbols, 
+symbols are responsible to validate and run a code block, the default context (ExTPL::Context::Default) runs
+a JavaScript VM ([duktape.org]) and symbols run on it.
+
 ## Macro blocks examples
 
 ```
+@defs {
+	// default vars value (will not overwrite existent vars)
+	// must be in a JavaScript Object Format (JSON like),
+	// that will run by JS VM
+	// this block need to end with a } after a newline (\n)
+	title: 'Home',
+	content: 'index'
+}
+
 @vars{
+	// set vars (will overwrite existent vars)
+	// this block need to end with a } after a newline (\n)
 	title: 'Home',
 	content: 'index',
 }
 
-@consts{
-	true: 1,
-	false: 0,
-	pi: 3.14159
-}
-
 @js{
 	// js code to run
-	// for a code block the end symbol must not have a white space
+	// this block need to end with a } after a newline (\n)
 	$.print("}"); // this passes
 }
 
-@js["include_file.js"]
 @["include_file"]
+@["include_file.js"]
 @{"print this text"}
 @{var_to_print}
 
 @rm{
 	Comment/Descarded block
+	this block need to end with a } after a newline (\n)
 }
 ```
 
-## Default macros (coming soon)
+## Comming next
 
-Default/basic implemented macros (some are show above). 
+Extended symbols types. Ex. (on Default context):
+
+```
+@if(/* js expression */):{"text"}
+
+@if-exists(var_name):{"<div>@{var_name}</div>"}
+
+@if-exists(var_name):js{
+	
+}
+
+@js(file1.js, file2.js){
+	// js code..
+}
+```
+
+## To Do
+
+* put node-extpl in a separated repository
+* put ExTPL::Context::Default into a separated library
+* create a best text filter mechanism (ExTPL::TextFilter maybe?)
+* API Documentation (soon)
 
 ## Example
 
