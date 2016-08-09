@@ -1,0 +1,18 @@
+{
+  "name": "xtpl",
+  "version": "0.0.1",
+  "description": "Extended Tag Template - simple extended tag system for templating",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+	"start": "node index.js",
+    "install": "node-gyp rebuild",
+	"clean-install": "node-gyp clean"
+  },
+  "author": "Mauro Joel Schutz",
+  "license": "MIT",
+  "gypfile": true,
+  "dependencies": {
+    "nan": "^2.4.0"
+  }
+}

@@ -1,0 +1,16 @@
+@rm{
+    File: helloworld.html.xtpl
+    Description: This is a example of template file
+}@defs{
+	title: 'Hello World'
+}<!DOCTYPE html>
+<html>
+<head>
+    <title>@{title}</title>
+</head>
+<body>
+@js{
+	$.print("Hello World!");
+}
+</body>
+</html>
