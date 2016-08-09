@@ -111,9 +111,43 @@ NAN_METHOD(RenderSync) {
 	info.GetReturnValue().Set(Nan::New<String>(output.str().c_str()).ToLocalChecked());
 }
 
+NAN_METHOD(AddFindPath) {
+	if (info.Length() < 1) {
+		Nan::ThrowTypeError("Wrong number of arguments");
+		return;
+	}
+	
+	if (!info[0]->IsString()) {
+		Nan::ThrowTypeError("First argument must be string");
+		return;
+	}
+	
+	std::string path = *Utf8String(info[0]->ToString());
+	
+	info.GetReturnValue().Set(Nan::New<Boolean>(ExTPL::IStream::addFindDir(path)));
+}
+
+NAN_METHOD(RmFindPath) {
+	if (info.Length() < 1) {
+		Nan::ThrowTypeError("Wrong number of arguments");
+		return;
+	}
+	
+	if (!info[0]->IsString()) {
+		Nan::ThrowTypeError("First argument must be string");
+		return;
+	}
+	
+	std::string path = *Utf8String(info[0]->ToString());
+	ExTPL::IStream::rmFindDir(path);
+}
+
 NAN_MODULE_INIT(init) {
     Nan::SetMethod(target, "render", Render);
+	Nan::SetMethod(target, "__express", Render);
 	Nan::SetMethod(target, "renderSync", RenderSync);
+	Nan::SetMethod(target, "addFindPath", AddFindPath);
+	Nan::SetMethod(target, "rmFindPath", RmFindPath);
 }
 
 NODE_MODULE(addon, init)
