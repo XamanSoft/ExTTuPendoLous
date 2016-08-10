@@ -10,12 +10,19 @@ namespace ContextDefault {
 class IncSymbol: public Symbol {
 	Error err;
 	Context::Default& defaultCxt;
+	mutable int lastChar;
 	
 public:
-	IncSymbol(Context::Default& df): defaultCxt(df) {}
+	IncSymbol(Context::Default& df): defaultCxt(df), lastChar(-1) {}
 	
 	bool validText(int c) const {
-		return c != ']';
+		if (c == ']' && lastChar != '\\') {
+			lastChar = -1;
+			return false;
+		}
+		
+		lastChar = c;
+		return true;
 	}
 	
 	Error& exec(std::ostream& out, const std::string& text) {
