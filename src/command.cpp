@@ -72,6 +72,14 @@ Error& Command::error() {
 	return err;
 }
 
+bool Command::result() {
+	if (currentSymbol) {
+		return currentSymbol->result();
+	}
+
+	return false;
+}
+
 std::string Command::name(std::istream &is) {
 	std::string resName;
 	int c = is.peek();

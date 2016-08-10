@@ -25,6 +25,7 @@ public:
 	IStream& parse(IStream &is);
 	Error& exec(std::ostream& out);
 	Error& error();
+	bool result();
 	
 private:
 	inline std::string name(std::istream &is);

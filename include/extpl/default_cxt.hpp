@@ -30,7 +30,7 @@ public:
 	
 	virtual Symbol* symbol(const std::string& symbolName) const;
 	
-	virtual Error& js(const std::string& code, JsCxtData& data, bool setError = true);
+	virtual Error& js(const std::string& code, JsCxtData& data);
 	
 	virtual void defVars(const Json& value);
 	virtual void defVarsJsonStr(const std::string& jsc);

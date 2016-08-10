@@ -2,13 +2,18 @@
     File: helloworld.html.xtpl
     Description: This is a example of template file
 }@defs{
-	title: 'Hello World'
+	title: 'Index'
 }<!DOCTYPE html>
 <html>
 <head>
-    <title>@{title}</title>
+    <title>@{title}:{" - Hello World"}</title>
 </head>
 <body>
+@if(
+	true
+):{"it's true"}
+@not.exists(content):{"no exists"}
+@exists(title):{"exists"}
 @js{
 	$.print("Hello World!");
 }

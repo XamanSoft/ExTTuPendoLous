@@ -1,5 +1,5 @@
-#ifndef __EXTPL_CONTEXT_DEFAULT_JS_SYMBOL_HPP
-#define __EXTPL_CONTEXT_DEFAULT_JS_SYMBOL_HPP
+#ifndef __EXTPL_CONTEXT_DEFAULT_IF_SYMBOL_HPP
+#define __EXTPL_CONTEXT_DEFAULT_IF_SYMBOL_HPP
 
 #include <extpl/symbol.hpp>
 #include <extpl/error.hpp>
@@ -9,7 +9,7 @@
 namespace ExTPL {
 namespace ContextDefault {
 
-class JsSymbol: public Symbol {
+class IfSymbol: public Symbol {
 	enum CharType {
 		NORMAL,
 		COMMENT_LN,
@@ -21,13 +21,14 @@ class JsSymbol: public Symbol {
 	
 	Context::Default& defaultCtx;
 	Error err;
+	bool res;
 	mutable int lastChar;	
 	
 public:
-	JsSymbol(Context::Default& df): defaultCtx(df), lastChar(-1) {}
+	IfSymbol(Context::Default& df): defaultCtx(df), res(false), lastChar(-1) {}
 	
 	bool validText(int c) const {	
-		if (lastChar == '\n' && c == '}') {
+		if (lastChar == '\n' && c == ')') {
 			lastChar = -1;
 			return false;
 		}
@@ -38,7 +39,8 @@ public:
 	
 	Error& exec(std::ostream& out, const std::string& text) {
 		Context::Default::JsCxtData data{out, defaultCtx};
-		err = defaultCtx.js(text, data);
+		err = defaultCtx.js(std::string("(")+text+")", data);
+		res = data.result;
 		return err;
 	}
 	
@@ -47,7 +49,7 @@ public:
 	}
 	
 	bool result() const {
-		return true;
+		return res;
 	}
 };
 

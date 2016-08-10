@@ -32,6 +32,10 @@ public:
 	Error& error() {
 		return err;
 	}
+	
+	bool result() const {
+		return true;
+	}
 };
 
 }

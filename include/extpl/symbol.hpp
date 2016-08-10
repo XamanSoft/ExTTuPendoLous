@@ -14,6 +14,7 @@ public:
 	
 	virtual bool validText(int c) const =0;
 	virtual Error& exec(std::ostream& out, const std::string& text) =0;
+	virtual bool result() const=0;
 	virtual Error& error() =0;
 };
 

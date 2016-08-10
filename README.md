@@ -6,7 +6,8 @@ Extended Tag Template - simple extended tag system for templating
 A template system based into a macro language, where you can build your own macro blocks.
 
 It works like C macro language, inserting text/data where a macro block appears, every macro start with
-a at symbol (@).
+a at symbol (@), a ':' can be used to continue blocks if their result is true, per default any macro blocks
+should return true, a false result will not execute any consecutives macro blocks.
 
 ## Macro blocks
 
@@ -19,10 +20,12 @@ This library works with a context class (include/extpl/context.hpp) that impleme
 symbols are responsible to validate and run a code block, the default context (ExTPL::Context::Default) runs
 a JavaScript VM ([duktape.org]) and symbols run on it.
 
+Ps.: Default context is very simply and will be refined with time.
+
 ## Macro blocks examples
 
 ```
-@defs {
+@defs{
 	// default vars value (will not overwrite existent vars)
 	// must be in a JavaScript Object Format (JSON like),
 	// that will run by JS VM
@@ -53,22 +56,20 @@ a JavaScript VM ([duktape.org]) and symbols run on it.
 	Comment/Descarded block
 	this block need to end with a } after a newline (\n)
 }
-```
 
-## Comming next
+@if(
+	// js expression
+	// this block need to end with a ) after a newline (\n)
+	$.vars.i == 10 && $.vars.j == 20
+):{"text"}
 
-Extended symbols types. Ex. (on Default context):
+@exists(var_name):{"<div>"}:{var_name}:{"</div>"}
 
-```
-@if(/* js expression */):{"text"}
-
-@if-exists(var_name):{"<div>@{var_name}</div>"}
-
-@if-exists(var_name):js{
+@exists(var_name):js{
 	
 }
 
-@js(file1.js, file2.js){
+@["file1.js"]:js{
 	// js code..
 }
 ```
@@ -77,7 +78,7 @@ Extended symbols types. Ex. (on Default context):
 
 * put node-extpl in a separated repository
 * put ExTPL::Context::Default into a separated library
-* create a best text filter mechanism (ExTPL::TextFilter maybe?)
+* create a best text filter/transform mechanism (ExTPL::TextFilter maybe?)
 * API Documentation (soon)
 
 ## Example

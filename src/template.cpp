@@ -39,7 +39,7 @@ Template::~Template() {}
 std::ostream& Template::render(std::ostream &out) {
 	Command cmd(context);
 		
-	while (in.peek() == '@' || in.get(*out.rdbuf(), DELIM)) {
+	while (in && (in.peek() == '@' || in.get(*out.rdbuf(), DELIM))) {
 		if (in.peek() == DELIM) {
 			in.ignore();
 			
@@ -51,6 +51,24 @@ std::ostream& Template::render(std::ostream &out) {
 			
 			if (in >> cmd) {
 				in.error(cmd.exec(out));
+			}
+			
+			bool result = cmd.result();
+			while (in && in.peek() == ':') {
+				in.ignore();
+				
+				if (in.peek() == ':') {
+					out << ':';
+					in.ignore();
+					break;
+				}
+				
+				if (in >> cmd) {
+					if (result) {
+						in.error(cmd.exec(out));
+						result = cmd.result();
+					}
+				}
 			}
 		}
 	}

@@ -14,10 +14,16 @@ using ExTPL::Json;
 struct Context::Default::JsCxtData {
 	std::ostream& out;
 	Context::Default& df;
+	bool result;
+	
+	JsCxtData(std::ostream& out, Context::Default& df, bool result = false): out(out), df(df), result(result){}
 };
 
 #include "default_ctx/var_symbol.hpp"
 #include "default_ctx/inc_symbol.hpp"
+#include "default_ctx/exists_symbol.hpp"
+#include "default_ctx/not_exists_symbol.hpp"
+#include "default_ctx/if_symbol.hpp"
 #include "default_ctx/defs_symbol.hpp"
 #include "default_ctx/vars_symbol.hpp"
 #include "default_ctx/js_symbol.hpp"
@@ -28,6 +34,9 @@ template<typename T> Symbol* createSymbol(Context::Default& def) { return new T(
 std::map<std::string, Symbol*(*)(Context::Default&)> symbolTable{
 	{ "{}",		&createSymbol<ExTPL::ContextDefault::VarSymbol> },
 	{ "[]",		&createSymbol<ExTPL::ContextDefault::IncSymbol> },
+	{ "exists()",	&createSymbol<ExTPL::ContextDefault::ExistsSymbol> },
+	{ "not.exists()",	&createSymbol<ExTPL::ContextDefault::NotExistsSymbol> },
+	{ "if()",	&createSymbol<ExTPL::ContextDefault::IfSymbol> },
 	{ "defs{}",		&createSymbol<ExTPL::ContextDefault::DefsSymbol> },
 	{ "vars{}",		&createSymbol<ExTPL::ContextDefault::VarsSymbol> },
 	{ "js{}",	&createSymbol<ExTPL::ContextDefault::JsSymbol> },
@@ -80,6 +89,16 @@ Context::Default::Default(): jsData(nullptr), ctx(duk_create_heap_default()) {
 				"else throw 'variable not defined'"
 		"}"
 	);
+	
+	duk_peval_string_noresult(ctx, 
+		"$.exists = function(varName) {"
+			"if (typeof varName !== 'string')"
+				"return false;"
+
+				"var value = varName.split('.').reduce(function(o, i){return o[i];}, $.vars);"
+				"return (typeof value !== 'undefined');"
+		"}"
+	);
 }
 
 Context::Default::~Default() {
@@ -94,7 +113,7 @@ Symbol* Context::Default::symbol(const std::string& symbolName) const {
 	return nullptr;
 }
 
-Error& Context::Default::js(const std::string& code, JsCxtData& data, bool setError) {
+Error& Context::Default::js(const std::string& code, JsCxtData& data) {
 	JsCxtData* d = nullptr;
 	if (jsData != nullptr)
 		d = jsData;
@@ -103,6 +122,7 @@ Error& Context::Default::js(const std::string& code, JsCxtData& data, bool setEr
 	if (duk_peval_string(ctx, code.c_str()))
 		err.set(duk_safe_to_string(ctx, -1));
 	
+	jsData->result = duk_is_boolean(ctx, -1) && duk_get_boolean(ctx, -1);
 	duk_pop(ctx);
 	
 	jsData = d;
