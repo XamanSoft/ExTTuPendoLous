@@ -6,7 +6,7 @@ Extended Tag Template - simple extended tag system for templating
 A template system based into a macro language, where you can build your own macro blocks.
 
 It works like C macro language, inserting text/data where a macro block appears, every macro start with
-a at symbol (@), a ':' can be used to continue blocks if their result is true, ou a ':!' to reverse result
+a at symbol (@), a ':' can be used to continue blocks if their result is true, or a ':!' to reverse result,
 per default any macro blocks should return true, a false result will not execute any consecutives macro blocks.
 
 ## Macro blocks
@@ -74,6 +74,7 @@ Ps.: Default context is very simply and will be refined with time.
 
 ## To Do
 
+* change result to int and do repeat on next symbol block
 * cache must accessed files in memory
   * use UglifyJS minifier on cached JS commands
 * put node-xtpl in a separated repository
