@@ -3,17 +3,18 @@
 
 #include <ostream>
 #include <string>
+#include "token.hpp"
 
 namespace ExTPL {
 	
 class Error;
+class IStream;
 
-class Symbol {
+class Symbol: public Token {
 public:
 	virtual ~Symbol() {}
 	
-	virtual bool validText(int c) const =0;
-	virtual Error& exec(std::ostream& out, const std::string& text) =0;
+	virtual Error& exec(std::ostream& out) =0;
 	virtual bool result() const=0;
 	virtual Error& error() =0;
 };

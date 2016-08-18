@@ -61,6 +61,9 @@ std::ostream& Template::render(std::ostream &out) {
 					out << ':';
 					in.ignore();
 					break;
+				} else if (in.peek() == '!') {
+					in.ignore();
+					result = !result;
 				}
 				
 				if (in >> cmd) {

@@ -24,7 +24,6 @@ Command::~Command() { delete currentSymbol; }
 IStream& Command::parse(IStream &is) {
 	delete currentSymbol;
 	currentSymbol = nullptr;
-	textBlock = "";
 	std::string symbolName = name(is);
 	
 	int c = is.peek();
@@ -44,7 +43,7 @@ IStream& Command::parse(IStream &is) {
 		return is;
 	}
 	
-	textBlock = text(is);
+	is >> *currentSymbol;
 
 	if (is.peek() != es) {
 		delete currentSymbol;
@@ -58,7 +57,7 @@ IStream& Command::parse(IStream &is) {
 
 Error& Command::exec(std::ostream& out) {
 	if (currentSymbol) {
-		return currentSymbol->exec(out, textBlock);
+		return currentSymbol->exec(out);
 	}
 
 	return err;
@@ -105,17 +104,4 @@ int Command::endSymbol(int st) {
 		return std::istream::traits_type::eof();
 	
 	return pairTable[st];
-}
-
-std::string Command::text(std::istream &is) {
-	std::string retText;
-	int c = is.peek();
-	
-	while (c != EOF && currentSymbol->validText(c)) {
-		retText += c;
-		is.ignore();
-		c = is.peek();
-	}
-	
-	return retText;
 }

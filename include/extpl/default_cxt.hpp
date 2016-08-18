@@ -3,9 +3,9 @@
 
 #include "context.hpp"
 #include "json.hpp"
+#include "stream.hpp"
 #include "error.hpp"
 #include <string>
-#include <sstream>
 
 typedef struct duk_hthread duk_context;
 
@@ -31,6 +31,7 @@ public:
 	virtual Symbol* symbol(const std::string& symbolName) const;
 	
 	virtual Error& js(const std::string& code, JsCxtData& data);
+	virtual Error& parseJs(IStream& is, const std::string& type, std::string& output);
 	
 	virtual void defVars(const Json& value);
 	virtual void defVarsJsonStr(const std::string& jsc);

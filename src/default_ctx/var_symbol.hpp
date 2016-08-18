@@ -10,31 +10,19 @@ namespace ContextDefault {
 class VarSymbol: public Symbol {
 	Error err;
 	Context::Default& defaultCxt;
-	mutable int lastChar;
+	std::string text;
 	
 public:
-	VarSymbol(Context::Default& df): defaultCxt(df), lastChar(-1) {}
+	VarSymbol(Context::Default& df): defaultCxt(df) {}
 	
-	bool validText(int c) const {
-		if (c == '}' && lastChar != '\\') {
-			lastChar = -1;
-			return false;
-		}
-		
-		lastChar = c;
-		return true;
+	IStream& parse(IStream &is) {
+		err = defaultCxt.parseJs(is, "bp", text);
+		return is;
 	}
 	
-	Error& exec(std::ostream& out, const std::string& text) {
-		size_t first = text.find_first_not_of(' ');
-		size_t last = text.find_last_not_of(' ');
+	Error& exec(std::ostream& out) {
 		Context::Default::JsCxtData data{out, defaultCxt};
-		bool istr = text[first] == '"' || text[first] == '\'';
-		std::string ttext = text.substr(first, (last-first+1));
-		if (!istr) { ttext.insert(0, "'"); ttext.append("'"); }
-		defaultCxt.js(std::string("$.") +
-			(istr ? "print" : "printVar") +
-				"(" + ttext + ")", data);
+		err = defaultCxt.js(std::string("try{with ($.vars)") + text + ".forEach(function(item){$.print(item)})}catch(e){}", data);
 		return err;
 	}
 	

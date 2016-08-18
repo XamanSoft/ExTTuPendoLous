@@ -4,6 +4,8 @@
 #include "duktape/duktape.h"
 #include <iostream>
 
+#include "parser.js.h"
+
 using ExTPL::Template;
 using ExTPL::Context;
 using ExTPL::Symbol;
@@ -18,6 +20,8 @@ struct Context::Default::JsCxtData {
 	
 	JsCxtData(std::ostream& out, Context::Default& df, bool result = false): out(out), df(df), result(result){}
 };
+
+Error import_string(const std::string& str, duk_context* ctx);
 
 #include "default_ctx/var_symbol.hpp"
 #include "default_ctx/inc_symbol.hpp"
@@ -64,32 +68,9 @@ Context::Default::Default(): jsData(nullptr), ctx(duk_create_heap_default()) {
 	duk_put_prop_string(ctx, -2, "$");  /* -> [ ... global ] */
 	duk_pop(ctx);
 	
-	duk_peval_string_noresult(ctx, 
-		"$.printVar = function(varName) {"
-			"if (typeof varName !== 'string')"
-				"return;"
-			//"try {"
-				"var value = varName.split('.').reduce(function(o, i) {return o[i];}, $.vars);"
-				"if (typeof value !== 'undefined')"
-					"$.print(value)"
-			/*"} catch(err) {"
-				"$.print(err);"
-			"}"*/
-		"}"
-	);
-	
-	duk_peval_string_noresult(ctx, 
-		"$.includeVar = function(varName) {"
-			"if (typeof varName !== 'string')"
-				"return;"
+	duk_eval_string_noresult(ctx, "var exports={};");
+	import_string(std::string(reinterpret_cast<char*>(&parser_js), sizeof(parser_js)), ctx);
 
-				"var value = varName.split('.').reduce(function(o, i) {return o[i];}, $.vars);"
-				"if (typeof value !== 'undefined')"
-					"$.include(value); "
-				"else throw 'variable not defined'"
-		"}"
-	);
-	
 	duk_peval_string_noresult(ctx, 
 		"$.exists = function(varName) {"
 			"if (typeof varName !== 'string')"
@@ -126,6 +107,166 @@ Error& Context::Default::js(const std::string& code, JsCxtData& data) {
 	duk_pop(ctx);
 	
 	jsData = d;
+	
+	return err;
+}
+
+class JsParser {
+	std::istream& is;
+	duk_context* ctx;
+	std::string output;
+
+public:
+	JsParser(std::istream& is, duk_context *ctx): is(is), ctx(ctx) {}
+	
+	void pushStream() {
+		const duk_function_list_entry stream_funcs[] = {
+			{ "peek", &do_stream_peek, 0 },
+			{ "next", &do_stream_next, 0 },
+			{ "looking_at", &do_stream_looking_at, 1 },
+			{ "raw", &do_stream_raw, 2 },
+			{ "output", &do_stream_output, 0 },
+			{ NULL, NULL, 0 }
+		};
+		
+		duk_push_object(ctx);  /* -> [ ... global obj ] */
+		duk_put_function_list(ctx, -1, stream_funcs);
+		duk_push_pointer(ctx, this);
+		duk_put_prop_string(ctx, -2, "\xff""\xff""data");
+		duk_peval_string(ctx, R"sfunc(
+	(function(find_str) {
+		var ret = '';
+		if (typeof find_str == 'function') {
+			var ch = ret = this.next();
+			while (!find_str(ch)) {ch=this.next(); if (!ch) break; ret+=ch;}
+		} else {
+			var comp = '';
+			for (var i=0; i < find_str.length; i++)
+				comp += this.next();
+			while (comp != find_str) {
+				var ch = this.next();
+				
+				if (!ch) break;
+				ret += comp.charAt(0);
+				comp = comp.substr(1);
+				comp += ch;
+			}
+		}
+		return ret;
+	})
+)sfunc");
+		duk_put_prop_string(ctx, -2, "extract");
+	}
+	
+private:
+	int peek() {
+		int front = is.peek();
+		if (front == EOF) front = 0;
+		return front;
+	}
+	
+	int next() {
+		int front = is.get();
+		if (front == EOF) front = 0;
+		output += front;
+		return front;
+	}
+	
+	bool looking_at(const std::string& str) {
+		return false;
+	}
+	
+	std::string raw(int pos, int endpos) {
+		return output.substr(pos, endpos);
+	}
+	
+	static duk_ret_t do_stream_peek(duk_context *ctx) {
+		duk_push_this(ctx);
+		duk_get_prop_string(ctx, -1, "\xff""\xff""data");
+		JsParser* data = static_cast<JsParser*>(duk_to_pointer(ctx, -1));
+		duk_pop_2(ctx);
+
+		duk_push_string(ctx, std::string(1, data->peek()).c_str());
+		return 1;  /* one return value */
+	}
+	
+	static duk_ret_t do_stream_next(duk_context *ctx) {
+		duk_push_this(ctx);
+		duk_get_prop_string(ctx, -1, "\xff""\xff""data");
+		JsParser* data = static_cast<JsParser*>(duk_to_pointer(ctx, -1));
+		duk_pop_2(ctx);
+
+		duk_push_string(ctx, std::string(1, data->next()).c_str());
+		return 1;  /* one return value */
+	}
+	
+	static duk_ret_t do_stream_looking_at(duk_context *ctx) {
+		int n = duk_get_top(ctx);
+		
+		if (!n)
+			return 0;
+		
+		std::string str = duk_safe_to_string(ctx, 0);
+		
+		duk_push_this(ctx);
+		duk_get_prop_string(ctx, -1, "\xff""\xff""data");
+		JsParser* data = static_cast<JsParser*>(duk_to_pointer(ctx, -1));
+		duk_pop_2(ctx);
+
+		duk_push_boolean(ctx, data->looking_at(str));
+		return 1;  /* one return value */
+	}
+	
+	static duk_ret_t do_stream_raw(duk_context *ctx) {
+		int n = duk_get_top(ctx);
+		
+		if (n < 2)
+			return 0;
+		
+		int pos = duk_to_int(ctx, 0);
+		int endpos = duk_to_int(ctx, 1);
+		
+		duk_push_this(ctx);
+		duk_get_prop_string(ctx, -1, "\xff""\xff""data");
+		JsParser* data = static_cast<JsParser*>(duk_to_pointer(ctx, -1));
+		duk_pop_2(ctx);
+
+		duk_push_string(ctx, data->raw(pos, endpos).c_str());
+		return 1;  /* one return value */
+	}
+	
+	static duk_ret_t do_stream_output(duk_context *ctx) {
+		duk_push_this(ctx);
+		duk_get_prop_string(ctx, -1, "\xff""\xff""data");
+		JsParser* data = static_cast<JsParser*>(duk_to_pointer(ctx, -1));
+		duk_pop_2(ctx);
+
+		std::cout << data->output << std::endl;
+		return 1;  /* one return value */
+	}
+};
+
+Error& Context::Default::parseJs(IStream& is, const std::string& type, std::string& output) {
+	JsParser jsparser(is, ctx);
+	
+	duk_push_global_object(ctx);
+	duk_get_prop_string(ctx, -1, "parse");
+	jsparser.pushStream();
+	duk_call(ctx, 1);
+	duk_push_string(ctx, type.c_str());
+	is.putLC();
+	if (duk_pcall(ctx, 1) != DUK_EXEC_SUCCESS) {
+		std::cout << duk_safe_to_string(ctx, -1) << std::endl;
+		err.set(duk_safe_to_string(ctx, -1));
+		duk_pop_2(ctx);
+		return err;
+	}
+	is.putLC();
+	duk_get_prop_string(ctx, -1, "print_to_string");
+	duk_dup(ctx, -2);
+	duk_call_method(ctx, 0);
+	output = duk_safe_to_string(ctx, -1);
+	duk_pop_3(ctx);
 	
 	return err;
 }
@@ -265,4 +406,19 @@ duk_ret_t do_print(duk_context *ctx) {
 	}
 
 	return 0;  /* no return value */
+}
+
+Error import_string(const std::string& str, duk_context* ctx) {
+	Error err;
+	
+	if (duk_pcompile_string(ctx, 0, str.c_str()) != 0) {
+		err.set(duk_safe_to_string(ctx, -1));
+	} else {
+		if (duk_pcall(ctx, 0) != DUK_EXEC_SUCCESS) {
+			err.set(duk_safe_to_string(ctx, -1));
+		}
+	}
+	duk_pop(ctx);
+	
+	return err;
 }

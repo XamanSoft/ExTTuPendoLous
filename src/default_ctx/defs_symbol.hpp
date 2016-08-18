@@ -10,23 +10,18 @@ namespace ContextDefault {
 class DefsSymbol: public Symbol {
 	Error err;
 	Context::Default& defaultCxt;
-	mutable int lastChar;
+	std::string text;
 	
 public:
-	DefsSymbol(Context::Default& df): defaultCxt(df), lastChar(-1) {}
+	DefsSymbol(Context::Default& df): defaultCxt(df) {}
 	
-	bool validText(int c) const {	
-		if (lastChar == '\n' && c == '}') {
-			lastChar = -1;
-			return false;
-		}
-		
-		lastChar = c;
-		return true;
+	IStream& parse(IStream &is) {
+		err = defaultCxt.parseJs(is, "o", text);
+		return is;
 	}
 	
-	Error& exec(std::ostream& out, const std::string& text) {
-		defaultCxt.defVarsJsonStr(std::string("{") + text +  "}");
+	Error& exec(std::ostream& out) {
+		defaultCxt.defVarsJsonStr(text);
 		return err;
 	}
 	

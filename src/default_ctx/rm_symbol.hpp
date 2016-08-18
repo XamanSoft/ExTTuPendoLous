@@ -3,29 +3,35 @@
 
 #include <extpl/symbol.hpp>
 #include <extpl/error.hpp>
-#include <cctype>
+#include <extpl/stream.hpp>
 
 namespace ExTPL {
 namespace ContextDefault {
 
 class RmSymbol: public Symbol {
 	Error err;
-	mutable int lastChar;
+	const int endChar;
 	
 public:
-	RmSymbol(Context::Default&): lastChar(-1) {}
+	RmSymbol(Context::Default&): endChar('}') {}
 	
-	bool validText(int c) const {	
-		if (lastChar == '\n' && c == '}') {
-			lastChar = -1;
-			return false;
-		}
+	IStream& parse(IStream& is) {
+		int c = -1;
+		int lastChar = -1;
 		
-		lastChar = c;
-		return true;
+		while ((c = is.peek()) != EOF) {
+			if (lastChar == '\n' && c == endChar) {
+				break;
+			}
+			
+			lastChar = c;
+			is.ignore();
+		}	
+		
+		return is;
 	}
 	
-	Error& exec(std::ostream& out, const std::string& text) {
+	Error& exec(std::ostream& out) {
 		return err;
 	}
 	

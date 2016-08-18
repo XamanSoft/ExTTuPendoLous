@@ -27,6 +27,7 @@ public:
 	virtual ~IStream();
 
 	int lineNumber() const;
+	void putLC();
 	
 	const Error& error(const char* msg = nullptr);
 	const Error& error(const Error& e);

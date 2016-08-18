@@ -3,40 +3,24 @@
 
 #include <extpl/symbol.hpp>
 #include <extpl/error.hpp>
-//#include <cstring>
-//#include <iostream>
 
 namespace ExTPL {
 namespace ContextDefault {
 
 class JsSymbol: public Symbol {
-	enum CharType {
-		NORMAL,
-		COMMENT_LN,
-		COMMENT_MLN,
-		LITERAL_S,
-		LITERAL_D,
-		IGNORE
-	};
-	
 	Context::Default& defaultCtx;
 	Error err;
-	mutable int lastChar;	
+	std::string text;
 	
 public:
-	JsSymbol(Context::Default& df): defaultCtx(df), lastChar(-1) {}
+	JsSymbol(Context::Default& df): defaultCtx(df) {}
 	
-	bool validText(int c) const {	
-		if (lastChar == '\n' && c == '}') {
-			lastChar = -1;
-			return false;
-		}
-		
-		lastChar = c;
-		return true;
+	IStream& parse(IStream &is) {
+		err = defaultCtx.parseJs(is, "b", text);
+		return is;
 	}
-	
-	Error& exec(std::ostream& out, const std::string& text) {
+
+	Error& exec(std::ostream& out) {
 		Context::Default::JsCxtData data{out, defaultCtx};
 		err = defaultCtx.js(text, data);
 		return err;

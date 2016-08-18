@@ -14,6 +14,7 @@
 	},
 	'target_defaults': {
 		"include_dirs" : [ 
+			'<(SHARED_INTERMEDIATE_DIR)/src',
 			'include'
 		],
 		'cflags': ['-DDUK_USE_CPP_EXCEPTIONS=1'],
@@ -96,6 +97,9 @@
 		{
 			'target_name': 'extpl-lib',
 			'type': 'static_library',
+			"dependencies": [
+				'parser_js'
+			],
 			'sources': [
 				'src/duktape/duktape.c',
 				'src/template.cpp',
@@ -103,6 +107,42 @@
 				'src/command.cpp',
 				'src/stream.cpp'
 			],
+		},
+		{
+		  'target_name': 'parser_js',
+		  'type': 'none',
+		  'actions': [
+			{
+			  'variables': {
+				'parse_files': [
+					# modified UglifyJS2
+					'scripts/UglifyJS2/lib/utils.js',
+					'scripts/UglifyJS2/lib/ast.js',
+					'scripts/UglifyJS2/lib/parse.js',	# modified tokenizer/parse
+					'scripts/UglifyJS2/lib/transform.js',
+					'scripts/UglifyJS2/lib/scope.js',
+					'scripts/UglifyJS2/lib/output.js',
+					'scripts/UglifyJS2/lib/compress.js',
+					'scripts/UglifyJS2/lib/sourcemap.js',
+					'scripts/UglifyJS2/lib/mozilla-ast.js',
+					'scripts/UglifyJS2/lib/propmangle.js',
+					#'scripts/UglifyJS2/tools/exports.js', # maybe needed some day?!
+				]
+			  },
+			  'action_name': 'ConvertFileToHeaderWithCharacterArray',
+			  'inputs': [
+				'tools/xxd.py',
+				'<@(parse_files)'
+			  ],
+			  'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/src/parser.js.h', ],
+			  'action': [
+				'python', 'tools/xxd.py', '-parser_js', '<@(_outputs)', '<@(parse_files)'
+			  ],
+			},
+		  ],
+		  'msvs_cygwin_shell': 0,
+		  'hard_dependency': 1,
+		  #'process_outputs_as_sources': 1,
 		},
 	],
 }

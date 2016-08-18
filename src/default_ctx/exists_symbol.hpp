@@ -11,17 +11,21 @@ class ExistsSymbol: public Symbol {
 	Error err;
 	Context::Default& defaultCxt;
 	bool res;
+	std::string text;
 	
 public:
 	ExistsSymbol(Context::Default& df): defaultCxt(df), res(false) {}
 	
-	bool validText(int c) const {
-		return c != ')';
+	IStream& parse(IStream &is) {
+		while (is && is.peek() != ')') {
+			text += is.get();
+		}
+		return is;
 	}
 	
-	Error& exec(std::ostream& out, const std::string& text) {
+	Error& exec(std::ostream& out) {
 		Context::Default::JsCxtData data{out, defaultCxt};
-		err = defaultCxt.js(std::string("$.exists('") + text + "')", data);
+		err = defaultCxt.js(std::string("with ($.vars) typeof ") + text + " != 'undefined'", data);
 		res = data.result;
 		return err;
 	}

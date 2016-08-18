@@ -16,11 +16,22 @@ class IStream::LineNumberStreamBuf : public std::streambuf {
     std::streambuf& sourceSB;	
     int ln;
     char cBuf;
+	char lastChar;
+	bool lc;
 
 protected:
     int underflow() {
+		if (lc) {
+			lc = false;
+			cBuf = lastChar;
+			lastChar = -1;
+            setg( &cBuf, &cBuf, &cBuf + 1 );
+			return cBuf;
+		}
+		
         int ch = sourceSB.sbumpc();
         if ( ch != EOF ) {
+			lastChar = cBuf;
             cBuf = ch;
             setg( &cBuf, &cBuf, &cBuf + 1 );
             if (cBuf == '\n') {
@@ -34,17 +45,23 @@ public:
 	LineNumberStreamBuf(std::streambuf* sb)
         : internalSB(sb),
 		sourceSB(*sb),
-        ln(1) {
+        ln(1),
+		lastChar(-1),
+		lc(false) {
     }
 	
     LineNumberStreamBuf(std::streambuf& sb)
         : sourceSB(sb),
-		ln(1) {
+		ln(1),
+		lastChar(-1),
+		lc(false) {
     }
 	
     LineNumberStreamBuf( std::istream& owner )
         : sourceSB(*owner.rdbuf()),
-		ln(1) {
+		ln(1),
+		lastChar(-1),
+		lc(false) {
     }
 	
     ~LineNumberStreamBuf() {
@@ -56,6 +73,16 @@ public:
 	
 	std::streambuf* rdbuf() {
 		return &sourceSB;
+	}
+	
+	void putLC() {
+        if ( lastChar != -1 ) {
+			int ch = cBuf;
+			cBuf = lastChar;
+            lastChar = ch;
+            //setg( &cBuf, &cBuf, &cBuf + 1 );
+			lc = true;
+        }
 	}
 };
 
@@ -109,6 +136,10 @@ IStream::~IStream() {
 
 int IStream::lineNumber() const {
 	return internalSB->lineNumber();
+}
+
+void IStream::putLC() {
+	internalSB->putLC();
 }
 	
 const Error& IStream::error(const char* msg) {
